@@ -3,13 +3,12 @@ from setuptools import setup, find_packages
 setup(
     name='Flask-PyMongo-Modelize',
     version='0.0.1',
-    packages=['tests', 'flask_pymongo_modelize'],
+    packages=find_packages(),
     url='https://github.com/KenetJervet/Flask-PyMongo-Modelize',
     license='BSD',
     author="Savor d'Isavano",
     author_email='anohig_isavay@163.com',
     description='Adds model support for Flask-PyMongo',
-    packages=find_packages(),
     install_requires=[
         'Flask >= 0.10',
         'pymongo >= 2.7',
