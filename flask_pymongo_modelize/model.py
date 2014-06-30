@@ -1,10 +1,14 @@
 __author__ = 'kj'
 
-__author__ = 'kj'
 
-__all__ = ['IFModel']
+__all__ = ['Model']
 
 from inspect import Parameter, Signature
+from flask.ext.pymongo import PyMongo
+
+__type_identifier__ = '__type_identifier__'
+__fields__ = '__fields__'
+__clct_name__ = '__clct_name__'
 
 
 def _make_signature(parameters={}):
@@ -56,16 +60,32 @@ def visualize(node):
         print("{}没有子类".format(node.node))
 
 
-class IFModelMeta(type):
+class Query:
+    def __init__(self, pymongo, modeltype):
+        self.query = getattr(pymongo.db, modeltype.__clct_name__)
+
+        cls = self.__class__
+
+        if hasattr(modeltype, __type_identifier__):
+            def _find(self, *args, **kwargs):
+                if args:
+                    args.update(modeltype.__type_identifier__)
+                return pymongo.find(*args, **kwargs)
+        else:
+            def _find(self, *args, **kwargs):
+                return pymongo.find(*args, **kwargs)
+
+
+class ModelMeta(type):
     def __new__(cls, name, bases, clsdict):
         def update_field(node):
             if node:
-                if hasattr(node.node, '__fields__'):
-                    clsdict['__fields__'][:0] = node.node.__fields__
-                    if '__initials__' not in clsdict:
-                        clsdict['__initials__'] = {}
+                if hasattr(node.node, __fields__):
+                    clsdict[__fields__][:0] = node.node.__fields__
+                    if __type_identifier__ not in clsdict:
+                        clsdict[__type_identifier__] = {}
 
-                    clsdict['__initials__'].update(node.node.__initials__)
+                    clsdict[__type_identifier__].update(node.node.__initials__)
                 if node.children:
                     for child in node.children:
                         update_field(child)
@@ -78,6 +98,7 @@ class IFModelMeta(type):
         fielddict = {k: clsobj.__initials__.get(k, None) for k in clsobj.__fields__}
         signature = _make_signature(fielddict)
         setattr(clsobj, '__signature__', signature)
+
         def __init__(self, *args, **kwargs):
             args = ()
             for k in set(kwargs.keys()) - set(fielddict.keys()):
@@ -91,12 +112,12 @@ class IFModelMeta(type):
                 setattr(self, name, value)
 
         clsobj.__init__ = __init__
-        if '__clct_name__' not in clsobj.__dict__:
-            setattr(clsobj, '__clct_name__', clsobj.__qualname__)
+        if __clct_name__ not in clsobj.__dict__:
+            setattr(clsobj, __clct_name__, clsobj.__qualname__)
         return clsobj
 
 
-class IFModel(dict, metaclass=IFModelMeta):
+class Model(dict, metaclass=ModelMeta):
     __initials__ = {}
     __fields__ = []
 
@@ -115,8 +136,8 @@ class IFModel(dict, metaclass=IFModelMeta):
     def __missing__(self, key):
         return self.__dict__[key] if key in self.__dict__ else None
 
-    class _Query:
-        def __get__(self, instance, owner):
-            return getattr(mongo.db, owner.__clct_name__)
-
-    query = _Query()
+    # class _Query:
+    #     def __get__(self, instance, owner):
+    #         return Query(pymongo)
+    #
+    # query = _Query()
