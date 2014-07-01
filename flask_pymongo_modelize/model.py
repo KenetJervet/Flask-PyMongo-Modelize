@@ -1,14 +1,16 @@
 __author__ = 'kj'
 
-
 __all__ = ['Model']
 
 from inspect import Parameter, Signature
+from functools import partial
+from flask import current_app
 from flask.ext.pymongo import PyMongo
+
 
 __type_identifier__ = '__type_identifier__'
 __fields__ = '__fields__'
-__clct_name__ = '__clct_name__'
+__collection_name__ = '__clct_name__'
 
 
 def _make_signature(parameters={}):
@@ -60,24 +62,12 @@ def visualize(node):
         print("{}没有子类".format(node.node))
 
 
-class Query:
-    def __init__(self, pymongo, modeltype):
-        self.query = getattr(pymongo.db, modeltype.__clct_name__)
-
-        cls = self.__class__
-
-        if hasattr(modeltype, __type_identifier__):
-            def _find(self, *args, **kwargs):
-                if args:
-                    args.update(modeltype.__type_identifier__)
-                return pymongo.find(*args, **kwargs)
-        else:
-            def _find(self, *args, **kwargs):
-                return pymongo.find(*args, **kwargs)
-
-
 class ModelMeta(type):
-    def __new__(cls, name, bases, clsdict):
+    def __new__(cls, name, bases, clsdict, **kwargs):
+        if __fields__ not in clsdict:
+            clsdict[__fields__] = []
+        clsdict.update(kwargs)
+
         def update_field(node):
             if node:
                 if hasattr(node.node, __fields__):
@@ -112,32 +102,67 @@ class ModelMeta(type):
                 setattr(self, name, value)
 
         clsobj.__init__ = __init__
-        if __clct_name__ not in clsobj.__dict__:
-            setattr(clsobj, __clct_name__, clsobj.__qualname__)
+        if __collection_name__ not in clsobj.__dict__:
+            setattr(clsobj, __collection_name__, clsobj.__qualname__)
+
         return clsobj
 
 
-class Model(dict, metaclass=ModelMeta):
-    __initials__ = {}
-    __fields__ = []
+    def __init__(cls, name, bases, clsdict, **kwargs):
+        super().__init__(name, bases, clsdict)
 
-    def __init__(self):
-        super().__init__()
 
-    def __getattr__(self, item):
-        return super().__getitem__(item)
+class Query:
+    def __init__(self, pymongo):
+        self.__pymongo = pymongo
 
-    def __setattr__(self, key, value):
-        super().__setitem__(key, value)
 
-    def __delattr__(self, item):
-        super().__delitem__(item)
+    @property
+    def __collection(self):
+        return getattr(self.__pymongo.db, self.__collection_name)
 
-    def __missing__(self, key):
-        return self.__dict__[key] if key in self.__dict__ else None
+    def __get__(self, instance, owner):
+        self.__modeltype = owner
+        self.__collection_name = owner.__collection_name__
+        self.__type_identifier = \
+            owner.__type_identifier__ \
+                if hasattr(owner, '__type_identifier__') \
+                else None
+        return self
 
-    # class _Query:
-    #     def __get__(self, instance, owner):
-    #         return Query(pymongo)
-    #
-    # query = _Query()
+    def __cast_to_modeltype(self, doc_or_docs):
+        if isinstance(doc_or_docs, dict):
+            return self.__modeltype(doc_or_docs)
+        else:
+            return [self.__modeltype(doc) for doc in doc_or_docs]
+
+    def find(self, *args, **kwargs):
+        res = self.__collection.find(*args,
+                                     kwargs=kwargs,
+                                     **self.__type_identifier)
+
+        return self.__cast_to_modeltype(res)
+
+
+    def find_one(self, spec_or_id=None, *args, **kwargs):
+        res = self.__collection.find_one(spec_or_id=spec_or_id,
+                                         *args,
+                                         kwargs=kwargs,
+                                         **self.__type_identifier)
+
+        return self.__cast_to_modeltype(res)
+
+    def insert(self, doc_or_docs, manipulate=True,
+               safe=None, check_keys=True, continue_on_error=False, **kwargs):
+        if isinstance(doc_or_docs, dict):
+            doc_or_docs = [doc_or_docs]
+
+        for item in doc_or_docs:
+            item.update(self.__type_identifier)
+
+        return self.__collection.insert(doc_or_docs,
+                                        manipulate=manipulate,
+                                        safe=safe,
+                                        check_keys=check_keys,
+                                        continue_on_error=continue_on_error,
+                                        **kwargs)
