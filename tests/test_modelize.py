@@ -31,6 +31,7 @@ class ModelizeTest(unittest.TestCase):
 
     def test_modelize_queries(self):
         with self.app.app_context():
+
             class TestModel1(self.modelize.Model):
                 __collection_name__ = 'test1'
                 __type_identifier__ = {'type': 'いち'}
@@ -49,6 +50,7 @@ class ModelizeTest(unittest.TestCase):
             TestModel1.query.insert(model12)
             TestModel2.query.insert(model21)
             TestModel2.query.insert(model22)
+
 
     def tearDown(self):
         pass
