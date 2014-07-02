@@ -10,7 +10,7 @@ from flask.ext.pymongo import PyMongo
 
 __type_identifier__ = '__type_identifier__'
 __fields__ = '__fields__'
-__collection_name__ = '__clct_name__'
+__collection_name__ = '__collection_name__'
 
 
 def _make_signature(parameters={}):
