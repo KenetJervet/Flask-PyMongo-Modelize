@@ -31,6 +31,7 @@ class ModelizeTest(unittest.TestCase):
 
     def test_modelize_queries(self):
         with self.app.app_context():
+            self.mongo.db.test1.drop()
 
             class TestModel1(self.modelize.Model):
                 __collection_name__ = 'test1'
@@ -50,6 +51,10 @@ class ModelizeTest(unittest.TestCase):
             TestModel1.query.insert(model12)
             TestModel2.query.insert(model21)
             TestModel2.query.insert(model22)
+            new_model11 = TestModel1.query.find_one(age=250)
+            self.assertIsNotNone(new_model11)
+            self.assertIsInstance(new_model11, TestModel1)
+            self.assertEqual(new_model11.name, '完犊子')
 
 
     def tearDown(self):

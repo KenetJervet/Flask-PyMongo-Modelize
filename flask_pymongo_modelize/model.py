@@ -101,7 +101,12 @@ class ModelMeta(type):
             for name, value in bound.arguments.items():
                 setattr(self, name, value)
 
+        @classmethod
+        def from_dict(cls, dict_):
+            return cls(**dict_)
+
         clsobj.__init__ = __init__
+        clsobj.from_dict = from_dict
         if __collection_name__ not in clsobj.__dict__:
             setattr(clsobj, __collection_name__, clsobj.__qualname__)
 
@@ -132,9 +137,9 @@ class Query:
 
     def __cast_to_modeltype(self, doc_or_docs):
         if isinstance(doc_or_docs, dict):
-            return self.__modeltype(doc_or_docs)
+            return self.__modeltype.from_dict(doc_or_docs)
         else:
-            return [self.__modeltype(doc) for doc in doc_or_docs]
+            return [self.__modeltype.from_dict(doc) for doc in doc_or_docs]
 
     def find(self, *args, **kwargs):
         res = self.__collection.find(*args,
@@ -145,10 +150,11 @@ class Query:
 
 
     def find_one(self, spec_or_id=None, *args, **kwargs):
+        kwargs = kwargs.copy()
+        kwargs.update(self.__type_identifier)
         res = self.__collection.find_one(spec_or_id=spec_or_id,
                                          *args,
-                                         kwargs=kwargs,
-                                         **self.__type_identifier)
+                                         **kwargs)
 
         return self.__cast_to_modeltype(res)
 

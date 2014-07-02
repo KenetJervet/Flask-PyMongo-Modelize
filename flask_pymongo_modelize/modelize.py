@@ -18,8 +18,8 @@ class Modelize:
             __collection_name__ = None
             __pymongo = self.pymongo
 
-            def __init__(self):
-                super().__init__()
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
 
             def __getattr__(self, item):
                 return super().__getitem__(item)
