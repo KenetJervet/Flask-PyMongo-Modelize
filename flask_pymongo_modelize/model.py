@@ -103,7 +103,7 @@ class ModelMeta(type):
 
         @classmethod
         def from_dict(cls, dict_):
-            return cls(**dict_)
+            return cls(**dict_) if dict_ else None
 
         clsobj.__init__ = __init__
         clsobj.from_dict = from_dict
@@ -136,23 +136,32 @@ class Query:
         return self
 
     def __cast_to_modeltype(self, doc_or_docs):
+        if doc_or_docs is None:
+            return None
+
         if isinstance(doc_or_docs, dict):
             return self.__modeltype.from_dict(doc_or_docs)
         else:
             return [self.__modeltype.from_dict(doc) for doc in doc_or_docs]
 
-    def find(self, *args, **kwargs):
-        res = self.__collection.find(*args,
-                                     kwargs=kwargs,
-                                     **self.__type_identifier)
+    def find(self, spec=None, *args, **kwargs):
+        if spec is None:
+            spec = {}
+        spec = spec.copy()
+        spec.update(self.__type_identifier)
+        res = self.__collection.find(spec=spec, *args,
+                                     **kwargs)
 
         return self.__cast_to_modeltype(res)
 
 
     def find_one(self, spec_or_id=None, *args, **kwargs):
-        kwargs = kwargs.copy()
-        kwargs.update(self.__type_identifier)
-        res = self.__collection.find_one(spec_or_id=spec_or_id,
+        #args += (self.__type_identifier, )
+        if spec_or_id is not None and not isinstance(spec_or_id, dict):
+            spec_or_id = {}
+        spec_or_id = spec_or_id.copy()
+        spec_or_id.update(self.__type_identifier)
+        res = self.__collection.find_one(spec_or_id,
                                          *args,
                                          **kwargs)
 
@@ -171,4 +180,4 @@ class Query:
                                         safe=safe,
                                         check_keys=check_keys,
                                         continue_on_error=continue_on_error,
-                                        **kwargs)
+                                        kwargs=kwargs)

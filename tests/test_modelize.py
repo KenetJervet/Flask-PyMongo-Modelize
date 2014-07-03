@@ -28,33 +28,41 @@ class ModelizeTest(unittest.TestCase):
         self.app.config.from_object(flask_stub_config)
         self.mongo = PyMongo(self.app)
         self.modelize = Modelize(self.mongo)
-
-    def test_modelize_queries(self):
-        with self.app.app_context():
-            self.mongo.db.test1.drop()
-
-            class TestModel1(self.modelize.Model):
+        class TestModel1(self.modelize.Model):
                 __collection_name__ = 'test1'
                 __type_identifier__ = {'type': 'いち'}
                 __fields__ = ['name', 'age']
 
-            class TestModel2(self.modelize.Model):
-                __collection_name__ = 'test1'
-                __type_identifier__ = {'type': 'に'}
-                __fields__ = ['color', 'shape']
+        class TestModel2(self.modelize.Model):
+            __collection_name__ = 'test1'
+            __type_identifier__ = {'type': 'に'}
+            __fields__ = ['color', 'shape']
+
+        self.TestModel1 = TestModel1
+        self.TestModel2 = TestModel2
+
+        with self.app.app_context():
+            self.mongo.db.test1.drop()
 
             model11 = TestModel1(name='完犊子', age=250)
-            model12 = TestModel1(name='狗史', age=38)
+            model12 = TestModel1(name='狗史', age=None)
             model21 = TestModel2(color='红', shape='S形')
             model22 = TestModel2(color='黄', shape='B形')
             TestModel1.query.insert(model11)
             TestModel1.query.insert(model12)
             TestModel2.query.insert(model21)
             TestModel2.query.insert(model22)
-            new_model11 = TestModel1.query.find_one(age=250)
+
+    def test_modelize_queries(self):
+        with self.app.app_context():
+            new_model11 = self.TestModel1.query.find_one({'age': 250})
             self.assertIsNotNone(new_model11)
-            self.assertIsInstance(new_model11, TestModel1)
+            self.assertIsInstance(new_model11, self.TestModel1)
             self.assertEqual(new_model11.name, '完犊子')
+            none_model20 = self.TestModel2.query.find_one({'age': 250})
+            self.assertIsNone(none_model20)
+            models_with_ages = self.TestModel1.query.find({'age': {'$ne': None}})
+            self.assertEqual(len(models_with_ages), 1)
 
 
     def tearDown(self):
