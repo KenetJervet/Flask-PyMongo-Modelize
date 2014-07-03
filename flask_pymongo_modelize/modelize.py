@@ -14,6 +14,7 @@ class Modelize:
 
         class Model(dict, metaclass=model.ModelMeta):
             __initials__ = {}
+            __type_identifier__ = {}
             __fields__ = []
             __collection_name__ = None
             __pymongo = self.pymongo

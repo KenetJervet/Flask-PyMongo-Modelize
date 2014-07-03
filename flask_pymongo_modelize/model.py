@@ -75,7 +75,7 @@ class ModelMeta(type):
                     if __type_identifier__ not in clsdict:
                         clsdict[__type_identifier__] = {}
 
-                    clsdict[__type_identifier__].update(node.node.__initials__)
+                    clsdict[__type_identifier__].update(node.node.__type_identifier__)
                 if node.children:
                     for child in node.children:
                         update_field(child)
@@ -85,7 +85,8 @@ class ModelMeta(type):
             update_field(clshierroot)
 
         clsobj = super().__new__(cls, name, bases, clsdict)
-        fielddict = {k: clsobj.__initials__.get(k, None) for k in clsobj.__fields__}
+        fielddict = {k: clsobj.__type_identifier__.get(
+            k, clsobj.__initials__.get(k, None)) for k in clsobj.__fields__}
         signature = _make_signature(fielddict)
         setattr(clsobj, '__signature__', signature)
 
