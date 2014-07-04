@@ -32,7 +32,7 @@ class Modelize:
                 super().__delitem__(item)
 
             def __missing__(self, key):
-                return self.__dict__[key] if key in self.__dict__ else None
+                return self.__dict__[key]
 
             query = model.Query(self.pymongo)
 
