@@ -28,13 +28,15 @@ class ModelizeTest(unittest.TestCase):
         self.app.config.from_object(flask_stub_config)
         self.mongo = PyMongo(self.app)
         self.modelize = Modelize(self.mongo)
+
         class TestBaseModel(self.modelize.Model):
             __collection_name__ = 'test1'
             __fields__ = ['base_1', 'base_2']
+
         class TestModel1(TestBaseModel):
-                __collection_name__ = 'test1'
-                __type_identifier__ = {'type': 'いち'}
-                __fields__ = ['name', 'age']
+            __collection_name__ = 'test1'
+            __type_identifier__ = {'type': 'いち'}
+            __fields__ = ['name', 'age']
 
         class TestModel2(TestBaseModel):
             __collection_name__ = 'test1'
