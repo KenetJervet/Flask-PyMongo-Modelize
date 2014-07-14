@@ -6,6 +6,7 @@ from inspect import Parameter, Signature
 from functools import partial
 from flask import current_app
 from flask.ext.pymongo import PyMongo
+from collections import Iterable
 
 
 __type_identifier__ = '__type_identifier__'
@@ -122,7 +123,6 @@ class Query:
     def __init__(self, pymongo):
         self.__pymongo = pymongo
 
-
     @property
     def __collection(self):
         return getattr(self.__pymongo.db, self.__collection_name)
@@ -142,8 +142,10 @@ class Query:
 
         if isinstance(doc_or_docs, dict):
             return self.__modeltype.from_dict(doc_or_docs)
-        else:
+        elif isinstance(doc_or_docs, Iterable):
             return [self.__modeltype.from_dict(doc) for doc in doc_or_docs]
+        else:
+            raise TypeError("doc_or_docs should be a dict or an Iterable, not a `{}`".format(type(doc_or_docs)))
 
     def find(self, spec=None, *args, **kwargs):
         if spec is None:
@@ -155,9 +157,7 @@ class Query:
 
         return self.__cast_to_modeltype(res)
 
-
     def find_one(self, spec_or_id=None, *args, **kwargs):
-        #args += (self.__type_identifier, )
         if spec_or_id is not None and not isinstance(spec_or_id, dict):
             spec_or_id = {}
         spec_or_id = spec_or_id.copy()
@@ -181,4 +181,20 @@ class Query:
                                         safe=safe,
                                         check_keys=check_keys,
                                         continue_on_error=continue_on_error,
-                                        kwargs=kwargs)
+                                        **kwargs)
+
+    def update(self, spec, document, upsert=False, manipulate=False,
+               safe=None, multi=False, check_keys=True, **kwargs):
+        if spec is None:
+            spec = {}
+        spec = spec.copy()
+        spec.update(self.__type_identifier)
+
+        return self.__collection.update(spec,
+                                        document,
+                                        upsert=upsert,
+                                        manipulate=manipulate,
+                                        safe=safe,
+                                        multi=multi,
+                                        check_keys=check_keys,
+                                        **kwargs)

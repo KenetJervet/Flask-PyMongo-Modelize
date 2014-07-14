@@ -58,7 +58,7 @@ class ModelizeTest(unittest.TestCase):
             TestModel2.query.insert(model21)
             TestModel2.query.insert(model22)
 
-    def test_modelize_queries(self):
+    def test_modelize_find_and_find_one(self):
         with self.app.app_context():
             new_model11 = self.TestModel1.query.find_one({'age': 250})
             self.assertIsNotNone(new_model11)
@@ -70,6 +70,15 @@ class ModelizeTest(unittest.TestCase):
             models_with_ages = self.TestModel1.query.find({'age': {'$ne': None}})
             self.assertEqual(len(models_with_ages), 1)
 
+    def test_modelize_update(self):
+        # TODO: This is crappy. We should use change tracker or something, and
+        # the user should be able to simple run update() to flush all changes.
+
+        with self.app.app_context():
+            model11 = self.TestModel1.query.find_one({'name': '狗史'})
+            self.TestModel1.query.update(model11, {'$set': {'age': 500}})
+            model11 = self.TestModel1.query.find_one({'name': '狗史'})
+            self.assertEqual(model11.age, 500)
 
     def tearDown(self):
         pass
